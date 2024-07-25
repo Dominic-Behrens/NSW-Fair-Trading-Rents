@@ -58,3 +58,34 @@ check_for_new_files<-function(folder){
   cat('The following new files are available from NSW Fair Trading.\nThey can be downloaded from https://www.nsw.gov.au/housing-and-construction/rental-forms-surveys-and-data/rental-bond-data \n')
   return(missing_files)
   }
+
+#function to read all .xlsx files in and join together
+make_all_rents<-function(file_folder,out_folder){
+rent_data_files<-list.files(path=file_folder,pattern="\\.xlsx$")
+rent_data<-data.frame()
+for (i in 1:length(rent_data_files)){
+  cat(paste('Reading in file',i,'of',length(rent_data_files),'\n'))
+  path_temp<-paste0('./Data/',rent_data_files[i])
+  temp_data<-read_excel(path=path_temp, skip=2, col_names=T, col_types= c("date","numeric","text","numeric","numeric"))
+  rent_data<-bind_rows(rent_data,temp_data)
+}
+rent_data%>%
+  clean_names()%>%
+  drop_na()%>%
+  write_csv(paste0(out_folder,'/all_rents_nsw.csv'))
+}
+
+#function to make a monthly timeseries by postcode and dwelling type
+make_timeseries<-function(all_rents_file,out_folder){
+rent_data<-read.csv(all_rents_file)
+rent_data%>%
+  clean_names()%>%
+  drop_na()%>%
+  mutate(month=as.yearmon(lodgement_date))%>%
+  group_by(month,postcode,dwelling_type)%>%
+  summarise(average_rent=mean(weekly_rent),
+            median_rent=quantile(weekly_rent,0.5),
+            rent_25pc=quantile(weekly_rent,0.25),
+            rent_75pc=quantile(weekly_rent,0.75))%>%
+write.csv(paste0(out_folder,'/postcode_timeseries.csv'))
+}
