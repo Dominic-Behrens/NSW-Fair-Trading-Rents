@@ -22,7 +22,8 @@ pacman::p_load(
   scales,
   strayr,
   httr2,
-  jsonlite
+  jsonlite,
+  usethis
 )
 
 #basic options

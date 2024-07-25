@@ -38,16 +38,23 @@ list_lodgement_files <- function(url){
   links <- webpage %>%
     html_nodes("a") %>%
     html_attr("href")
-  
   # Filter the links to include only the ones referring to lodgements
   filtered_links<-filter_lodgements(links)
   filtered_links<-filtered_links[!is.na(filtered_links)]
-  
-  base_files<-basename(filtered_links)
-  return(base_files)
+  file_names<-basename(filtered_links)
+  return(file_names)
 }
 
-download_fil
-
-june_24<-download.file('https://www.nsw.gov.au/sites/default/files/noindex/2024-07/rental-bond-lodgements-june-2024.xlsx',
-                       destfile='./Data/rental-bond-lodgements-june-2024.xlsx')
+#function to check if any new files are available
+check_for_new_files<-function(folder){
+  existing_files<-list.files(folder)
+  new_files<-list_lodgement_files('https://www.nsw.gov.au/housing-and-construction/rental-forms-surveys-and-data/rental-bond-data')
+  missing_files<-new_files%>%
+    as.data.frame()%>%
+    filter(!.%in%existing_files,
+           !str_detect(.,'2023'),
+           !str_detect(.,'2022'),
+           !str_detect(.,'2021'))
+  cat('The following new files are available from NSW Fair Trading.\nThey can be downloaded from https://www.nsw.gov.au/housing-and-construction/rental-forms-surveys-and-data/rental-bond-data \n')
+  return(missing_files)
+  }
