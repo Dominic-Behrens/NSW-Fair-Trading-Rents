@@ -4,19 +4,6 @@
 #Date: July 2024
 #Notes:
 
-#load and install required packages
-if(!require("pacman", character.only = T)) install.packages("pacman")
-
-pacman::p_load(
-  tidyverse,
-  magrittr, 
-  readxl,  
-  janitor,
-  lubridate,
-  sf,
-  tmap
-)
-
 #basic options
 gc()
 rm(list=ls())
