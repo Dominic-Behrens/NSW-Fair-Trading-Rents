@@ -33,21 +33,26 @@ list_lodgement_files <- function(url){
 }
 
 #function to check if any new files are available
-check_for_new_files<-function(folder){
-  existing_files<-list.files(folder)
+check_for_new_files<-function(list_files){
   new_files<-list_lodgement_files('https://www.nsw.gov.au/housing-and-construction/rental-forms-surveys-and-data/rental-bond-data')
   missing_files<-new_files%>%
     as.data.frame()%>%
-    filter(!.%in%existing_files,
+    filter(!.%in%list_files,
            !str_detect(.,'2023'),
            !str_detect(.,'2022'),
            !str_detect(.,'2021'))
-  cat('The following new files are available from NSW Fair Trading.\nThey can be downloaded from https://www.nsw.gov.au/housing-and-construction/rental-forms-surveys-and-data/rental-bond-data \n')
-  return(missing_files)
-  }
-
+  if(nrow(missing_files)==0){
+    cat("Local Fair Trading data is up to date\n")
+    missing_files<-0
+    }else{
+  cat('The following new files are available from NSW Fair Trading.\nThey can be downloaded from https://www.nsw.gov.au/housing-and-construction/rental-forms-surveys-and-data/rental-bond-data \n',
+      missing_files$.)
+    missing_files<-1
+    }
+}
 #function to read all .xlsx files in and join together
-make_all_rents<-function(file_folder,out_folder){
+make_all_rents<-function(file_folder,out_folder,missing_files){
+  if(missing_files==0){
 rent_data_files<-list.files(path=file_folder,pattern="\\.xlsx$")
 rent_data<-data.frame()
 for (i in 1:length(rent_data_files)){
@@ -56,16 +61,20 @@ for (i in 1:length(rent_data_files)){
   temp_data<-read_excel(path=path_temp, skip=2, col_names=T, col_types= c("date","numeric","text","numeric","numeric"))
   rent_data<-bind_rows(rent_data,temp_data)
 }
-rent_data%>%
+clean_rent_data<-rent_data%>%
   clean_names()%>%
-  drop_na()%>%
-  write_csv(paste0(out_folder,'/all_rents_nsw.csv'))
+  drop_na()
+
+write_csv(clean_rent_data,paste0(out_folder,'/all_rents_nsw.csv'))
+return(clean_rent_data)
+  }else{
+    cat('There are missing files.\n Download from the NSW Fair Trading website before proceeding.')
+  }
 }
 
 #function to make a monthly timeseries by postcode and dwelling type
 make_timeseries<-function(all_rents_file,out_folder){
-rent_data<-read.csv(all_rents_file)
-rent_data%>%
+timeseries<-all_rents_file%>%
   clean_names()%>%
   drop_na()%>%
   mutate(month=as.yearmon(lodgement_date))%>%
@@ -73,6 +82,7 @@ rent_data%>%
   summarise(average_rent=mean(weekly_rent),
             median_rent=quantile(weekly_rent,0.5),
             rent_25pc=quantile(weekly_rent,0.25),
-            rent_75pc=quantile(weekly_rent,0.75))%>%
-write.csv(paste0(out_folder,'/postcode_timeseries.csv'))
+            rent_75pc=quantile(weekly_rent,0.75))
+write.csv(timeseries,paste0(out_folder,'/postcode_timeseries.csv'))
+  return(timeseries)
 }

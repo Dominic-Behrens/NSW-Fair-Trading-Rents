@@ -5,7 +5,7 @@
 #Notes:
 
 #load targets
-library(targets)
+library(targets,tarchetypes)
 
 source('./Scripts/functions.R')
 tar_option_set(packages=c(  "tidyverse",
@@ -14,11 +14,14 @@ tar_option_set(packages=c(  "tidyverse",
                             "lubridate",
                             "sf",
                             "tmap",
-                            "zoo"))
+                            "zoo",
+                            "rvest"))
 
 
 list(
-  tar_target(missing_files,check_for_new_files('./Data')),
-  tar_target(all_rents,make_all_rents('./Data','./Outputs/Data')),
-  tar_target(timeseries,make_timeseries('./Outputs/Data/all_rents_nsw.csv','./Outputs/Data'))
+  tar_target(data_files,"./Data"%>%
+               list.files()),
+  tar_target(missing_files,check_for_new_files(data_files)),
+  tar_target(all_rents,make_all_rents('./Data','./Outputs/Data',missing_files)),
+  tar_target(timeseries,make_timeseries(all_rents,'./Outputs/Data'))
 )
